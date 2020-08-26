@@ -8,9 +8,6 @@ Currently running the Python Script will prompt the user to type the Artist/Band
 ## Notes:
 User will need to create an config.py file with the following variables:
 
-#### Client User ID is taken from Spotify User ID
-CLIENT_USER_ID = ''
-
 #### MBrains token and Setlist ID taken from respective sites
 MBRAINZ_TOKEN = '' 
 
