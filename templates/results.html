@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>{{ results[0]['artist'] }} Setlist Results</title>
+</head>
+<body>
+<div class="container">
+    <div class="jumbotron text-center">
+        <h1>{{ results[0]['artist'] }} Playlist Results</h1>
+    </div>
+    <div>
+        <p>Below are the Results from the last shows played, followed by the unique songs that will be added to the playlist</p>
+        <p>Click create a playlist of unique setlist songs</p>
+        <p>The last tour for {{results[0]['artist']}} was {{last_tour}}</p>
+    </div>
+    <div class="container">
+        <div class="btn-group" role="group" aria-label="Basic example">
+            <a href="/added" class="btn btn-success" role="button">Submit to Spotify</a>
+            <a href="/" class="btn btn-info" role="button">Search for a new artist</a>
+            <a href="/sign_out" class="btn btn-danger" role="button">Sign Out</a>
+        </div>
+    </div>
+    <div class="container">
+        <ol class="list-group">
+        {% for song in songs %}
+            <li class="list-group-item">{{ song }}</li>
+        {% endfor %}
+        </ol>
+    </div>
+    <div>
+        <h1 class="text-center">Recent Song History</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Song</th>
+                    <th scope="col">Tour Name</th>
+                    <th scope="col">Venue</th>
+                    <th scope="col">Set</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for set in results %}
+            <tr>
+                <th scope="row">{{set['song']}}</th>
+                <td>{{set['tour']}}</td>
+                <td>{{set['venue']}}</td>
+                <td>{{set['set']}}</td>
+            </tr>
+            {%endfor%}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script type=text/javascript src="{{url_for('static', filename='main.js') }}"></script>
+</html>
