@@ -1,0 +1,4 @@
+auth_key.py
+/.spotify_caches
+/.flask_session
+/config.py
