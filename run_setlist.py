@@ -1,7 +1,5 @@
-import pprint
-
-import config
 from setlist_helper import get_musicbrainz_id, get_setlist_info
+from pprint import pprint
 
 
 def create_setlist(artist_name):
@@ -11,10 +9,10 @@ def create_setlist(artist_name):
     # and create a playlist out of it, to prepare for the show
 
     # Retrieve mbrainz ID for use in Setlist FM
-    mbid = get_musicbrainz_id(artist_name)
+    mbrainz = get_musicbrainz_id(artist_name)
 
     # Get .json setlist_data from setlist FM
-    setlist_data = get_setlist_info(mbid)
+    setlist_data = get_setlist_info(mbrainz)
 
     # store artist, tour, venue_name, song, and set in lists
     artist_info = []
@@ -22,7 +20,7 @@ def create_setlist(artist_name):
     try:
         int(setlist_data['total']) > 5
     except:
-        message = 'Not Enough Playlist Data or Does not have any setlist data on setlistFM'
+        message = 'Not Enough Playlist Data or Artist does not have any setlist data on setlistFM'
         return message
 
     # Loop through most recent 15 setlists unless setlists is less than 7
@@ -45,20 +43,16 @@ def create_setlist(artist_name):
                 current_tour = setlist_data['setlist'][i]['tour']['name']
             if not current_tour_name:
                 current_tour_name = setlist_data['setlist'][i]['tour']['name']
-        # If no setlist_data Available
-        if len(setlist_data['setlist'][i]['sets']['set']) == 0:
-            row_dict = {
-                'artist': setlist_data['setlist'][i]['artist']['name'],
-                'tour': current_tour,
-                'venue': setlist_data['setlist'][i]['venue']['name'],
-                'song': 'No Setlist Created Yet',
-                'set': 'N/A'
-            }
-            artist_info.append(row_dict)
-        else:
-            for sets in setlist_data['setlist'][i]['sets']['set']:
+        # If there is setlist_data Available
+        if len(setlist_data['setlist'][i]['sets']['set']) != 0:
+            # ignore any sets where songs are less than 5
+            for sets in (setx for setx in
+                         setlist_data['setlist'][i]['sets']['set']
+                         if len(setlist_data['setlist'][i]['sets']['set'][0]['song']) > 4):
+                # for sets in setlist_data['setlist'][i]['sets']['set']:
                 song_set = 'Main'
-                for songs in sets['song']:
+
+                for songs in (sets['song']):
                     if 'encore' in sets:
                         song_set = 'encore ' + str(sets['encore'])
                     try:
@@ -71,6 +65,8 @@ def create_setlist(artist_name):
                             'artist': setlist_data['setlist'][i]['artist']['name'],
                             'tour': current_tour,
                             'venue': setlist_data['setlist'][i]['venue']['name'],
+                            'city': setlist_data['setlist'][i]['venue']['city']['name'],
+                            'country': setlist_data['setlist'][i]['venue']['city']['country']['code'],
                             'song': songs['name'],
                             'set': song_set
                         }
@@ -80,11 +76,17 @@ def create_setlist(artist_name):
                             'artist': setlist_data['setlist'][i]['artist']['name'],
                             'tour': current_tour,
                             'venue': setlist_data['setlist'][i]['venue']['name'],
+                            'city': setlist_data['setlist'][i]['venue']['city']['name'],
+                            'country': setlist_data['setlist'][i]['venue']['city']['country']['code'],
                             'song': 'No Setlist Created Yet',
                             'set': 'N/A'
                         }
                         artist_info.append(row_dict)
-    return artist_info
+    if artist_info:
+        return artist_info
+    else:
+        message = 'Not Enough Playlist Data or Artist does not have any setlist data on setlistFM'
+        return message
 
 
 def get_unique_songs(artist_info):
@@ -106,7 +108,7 @@ def submit_to_spotify(artist_name, current_tour_name, song_list, spot):
 
     # create a playlist with Artist Name
     playlist = spot.user_playlist_create(
-        config.CLIENT_USER_ID,
+        spot.me()['id'],
         'Upcoming ' + artist_name + ' tour playlist',
         public=True,
         description='Playlist created of songs played by '
@@ -116,7 +118,7 @@ def submit_to_spotify(artist_name, current_tour_name, song_list, spot):
 
     for uri in spotify_songs.values():
         spot.user_playlist_add_tracks(
-            config.CLIENT_USER_ID,
+            spot.me()['id'],
             playlist['id'],
             [uri])
     return playlist['external_urls']['spotify']

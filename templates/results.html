@@ -4,59 +4,97 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{url_for('static', filename='styles.css') }}">
+    <script src="https://kit.fontawesome.com/9eb474aa63.js" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <title>{{ results[0]['artist'] }} Setlist Results</title>
 </head>
 <body>
 <div class="container">
-    <div class="jumbotron text-center">
-        <h1>{{ results[0]['artist'] }} Playlist Results</h1>
-    </div>
-    <div>
-        <p>Below are the Results from the last shows played, followed by the unique songs that will be added to the playlist</p>
-        <p>Click create a playlist of unique setlist songs</p>
-        <p>The last tour for {{results[0]['artist']}} was {{last_tour}}</p>
-    </div>
-    <div class="container">
-        <div class="btn-group" role="group" aria-label="Basic example">
-            <a href="/added" class="btn btn-success" role="button">Submit to Spotify</a>
-            <a href="/" class="btn btn-info" role="button">Search for a new artist</a>
-            <a href="/sign_out" class="btn btn-danger" role="button">Sign Out</a>
+    <div class="row">
+        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto">
+            <div class="card card-signin my-5">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="setlistTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">{{results[0]['artist']}}</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="playlist-tab" data-toggle="tab" href="#playlist" role="tab" aria-controls="playlist" aria-selected="false">Playlist Songs</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="history-tab" data-toggle="tab" href="#history" role="tab" aria-controls="history" aria-selected="false">Recent Tour History</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="setlistTabContent">
+
+
+                        <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                            <p>In the following tabs above are the unique songs that will be added to the playlist , followed by the results from the last shows played</p>
+                            <p>Click create a playlist below to create a playlist the unique setlist songs</p>
+                            <p>The last tour for {{results[0]['artist']}}: {{last_tour}}</p>
+                            <p>Total number of songs collected: {{songs|length}}</p>
+                        </div>
+
+
+                          <div class="tab-pane fade" id="playlist" role="tabpanel" aria-labelledby="playlist-tab">
+                              <div class="scrollClass">
+                                <ol class="list-group">
+                                    {% for song in songs %}
+                                        <li class="list-group-item">{{ song }}</li>
+                                    {% endfor %}
+                                </ol>
+                              </div>
+                          </div>
+
+                          <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+
+                              <h1 class="text-center">Recent Tour History</h1>
+                              <p>Type a song to filter the list by song title</p>
+                              <input class="form-control" id="resultSearch" type="text" placeholder="Search..">
+                              <div class="scrollClass">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Song</th>
+                                            <th scope="col">Tour Name</th>
+                                            <th scope="col">Venue</th>
+                                            <th scope="col">Set</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultBody">
+                                    {% for set in results %}
+                                    <tr>
+                                        <th scope="row">{{set['song']}}</th>
+                                        <td>{{set['tour']}}</td>
+                                        <td>{{set['venue']}}<br>
+                                            {{set['city']}}, {{set['country']}}
+                                        </td>
+                                        <td>{{set['set']}}</td>
+                                    </tr>
+                                    {%endfor%}
+                                    </tbody>
+                                </table>
+                              </div>
+                          </div>
+
+                    </div>
+                </div>
+                  <div class="card-footer">
+                      <a href="{{url}}" target="_blank" class="btn btn-lg btn-success btn-block text-uppercase btn-style" role="button">
+                          <i class="fab fa-spotify"></i> Create Playlist
+                      </a>
+                  </div>
+            </div>
         </div>
-    </div>
-    <div class="container">
-        <ol class="list-group">
-        {% for song in songs %}
-            <li class="list-group-item">{{ song }}</li>
-        {% endfor %}
-        </ol>
-    </div>
-    <div>
-        <h1 class="text-center">Recent Song History</h1>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">Song</th>
-                    <th scope="col">Tour Name</th>
-                    <th scope="col">Venue</th>
-                    <th scope="col">Set</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for set in results %}
-            <tr>
-                <th scope="row">{{set['song']}}</th>
-                <td>{{set['tour']}}</td>
-                <td>{{set['venue']}}</td>
-                <td>{{set['set']}}</td>
-            </tr>
-            {%endfor%}
-            </tbody>
-        </table>
     </div>
 </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script type=text/javascript src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='jq.js') }}"></script>
 </html>

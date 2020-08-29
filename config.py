@@ -3,4 +3,5 @@ SETLIST_FM_ID = 'cqnaPIoxH-xgT-XHbHxpMyExygvyqK9W3O_K'
 
 SPOTIPY_CLIENT_ID = 'f5ac2b750bdd424f956119ff0230071b'
 SPOTIPY_CLIENT_SECRET = '92d4b62c4dd44ac8a2e0a8bf1a2906cf'
-SPOTIPY_REDIRECT_URI = 'http://jvald043.pythonanywhere.com/'
+SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:8080/'
+# SPOTIPY_REDIRECT_URI = 'http://jvald043.pythonanywhere.com/'

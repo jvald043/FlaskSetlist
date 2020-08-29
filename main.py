@@ -57,7 +57,6 @@ def index():
     # Step 4. Signed in, display data
     spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager,
                               auth_manager=spotify_auth_manager)
-
     return render_template('main.html', name=spotify.me()["display_name"])
 
 
@@ -65,7 +64,6 @@ def index():
 def sign_out():
     os.remove(session_cache_path())
     session.clear()
-    print(session_cache_path())
     if session_cache_path():
         try:
             # Remove the CACHE file (.cache-test) so that a new user can authorize.

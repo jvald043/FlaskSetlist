@@ -1,38 +1,47 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <title>Welcome to the Setlist Generator</title>
-
+    <link rel="stylesheet" href="{{url_for('static', filename='styles.css') }}">
+    <script src="https://kit.fontawesome.com/9eb474aa63.js" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>Setlist Generator</title>
 </head>
 <body>
-<div class="container">
-    {% if error %}
-        <div class="alert alert-danger">
-            <p>{{error}}</p>
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-9 col-md-7 col-lg-5 mx-auto">
+        <div class="card card-signin my-5">
+          <div class="card-body">
+              {% if error %}
+                <div class="alert alert-danger"><p>{{error}}</p>
+                    <h3 class="card-title text-center">Please try another Artist!</h3>
+                </div>
+              {% else %}
+                <h3 class="card-title text-center">Welcome {{name}}</h3>
+              {% endif %}
+            <form class="form-signin needs-validation" action="{{ url_for('results') }}" method="POST">
+              <div class="form-label-group">
+                  <input name='artist_name' type="text" class="form-control" placeholder="Please enter an Artist or Band" id="artist_name">
+                  <label for="artist_name">Please enter an Artist or Band</label>
+              </div>
+              <button class="btn btn-lg btn-success btn-block text-uppercase btn-style" type="submit"><i class="fab fa-spotify"></i>Submit</button>
+              <hr class="my-4">
+                <a href="/sign_out" class="btn btn-lg btn-block text-uppercase btn-danger btn-style" role="button">Sign Out</a>
+            </form>
+          </div>
         </div>
-    {% endif %}
-    <div class="jumbotron text-center">
-        <h1>Hello {{name}}!</h1>
+      </div>
     </div>
-    <div>
-        <form class="needs-validation" action="{{ url_for('results') }}" method="POST">
-            <div class="form-group">
-                <label for="artist_name">Please enter Artist Name below:</label>
-                <input name='artist_name' type="text" class="form-control" id="artist_name">
-            </div>
-            <div>
-                <button type="submit" class="btn btn-info">Create Playlist</button>
-            </div>
-        </form>
-        <div>
-            <a href="/sign_out" class="btn btn-danger" role="button">Sign Out</a>
-        </div>
-    </div>
-</div>
+  </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script type=text/javascript src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='jq.js') }}"></script>
+
+</html>
+

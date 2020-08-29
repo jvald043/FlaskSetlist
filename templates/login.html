@@ -4,32 +4,35 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{url_for('static', filename='styles.css') }}">
+    <script src="https://kit.fontawesome.com/9eb474aa63.js" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <title>Setlist Generator</title>
 </head>
-<div class="container">
-    <div class="text-center" style="padding:50px 0">
-        <div class="jumbotron text-center">
-            <h1>Spotify Setlist Generator</h1>
-        </div>
-        <div class="login-form-1">
-            <form id="setlistLogin" class="text-left">
-                <div class="setlist-login-form">
-                    <p>Setlist Creator needs authorization from the user in order to have access to create a playlist</p>
-                </div>
-                <div class="login-form-main-message">
-                    <p>This App generates a playlist based on the last songs an artist/band played at their recent venues according to setlist fm</p>
-                </div>
-                <div class="main-login-form">
-                    <a href="{{auth_url}}" class="btn btn-success" role="button">Authorize Spotify</a>
-                </div>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-9 col-md-7 col-lg-5 mx-auto">
+        <div class="card card-signin my-5">
+          <div class="card-body">
+            <h3 class="card-title text-center">Setlist Generator</h3>
+              <p>Setlist Creator needs authorization from the user in order to have access to create a playlist</p>
+              <p>This App generates a playlist based on the last songs an artist/band played at their recent venues according to setlist fm</p>
+            <form id="setlistLogin" class="form-signin">
+              <hr class="my-4">
+                <a href="{{auth_url}}" class="btn btn-success btn-lg btn-block text-uppercase btn-style" role="button">
+                    <i class="fab fa-spotify"></i> Authorize Spotify</a>
             </form>
+          </div>
         </div>
-        <!-- end:Main Form -->
+      </div>
     </div>
-</div>
+  </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script type=text/javascript src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='main.js') }}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='jq.js') }}"></script>
 </html>
+
