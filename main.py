@@ -1,4 +1,5 @@
 import spotipy
+from spotipy.exceptions import SpotifyException
 from spotipy.cache_handler import FlaskSessionCacheHandler
 from spotipy.oauth2 import SpotifyOAuth
 from flask import Flask, session, request, redirect, render_template
@@ -14,6 +15,8 @@ app.config['SESSION_COOKIE_SECURE'] = config.SPOTIPY_REDIRECT_URI.startswith('ht
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 SCOPE = 'playlist-modify-public user-read-currently-playing'
+SPOTIFY_ERROR_MESSAGE = ('Spotify declined the request. The app may be temporarily unavailable; '
+                         'please try again later.')
 NOT_FOUND_MESSAGE = 'Not Enough Playlist Data or Artist does not have any setlist data on setlistFM'
 
 
@@ -62,7 +65,14 @@ def index():
         return render_template('login.html', auth_url=oauth.get_authorize_url())
 
     spotify = spotipy.Spotify(auth_manager=oauth)
-    return render_template('main.html', name=spotify.me()['display_name'])
+    try:
+        name = spotify.me()['display_name']
+    except SpotifyException as e:
+        app.logger.warning('Spotify /me failed: %s', e)
+        session.clear()
+        return render_template('login.html', auth_url=oauth.get_authorize_url(),
+                               error=SPOTIFY_ERROR_MESSAGE)
+    return render_template('main.html', name=name)
 
 
 @app.route('/sign_out')
@@ -103,7 +113,11 @@ def added():
 
     spot_songs = get_unique_songs(result)
     spotify = spotipy.Spotify(auth_manager=oauth)
-    url = submit_to_spotify(result[0]['artist'], find_last_tour(result), spot_songs, spotify)
+    try:
+        url = submit_to_spotify(result[0]['artist'], find_last_tour(result), spot_songs, spotify)
+    except SpotifyException as e:
+        app.logger.warning('Creating playlist failed: %s', e)
+        return render_template('songsAdded.html', songs='', url='', message='Error')
     return render_template('songsAdded.html', songs=spot_songs, url=url, message='Success')
 
 
