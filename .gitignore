@@ -1,3 +1,12 @@
-/.spotify_caches
-/.flask_session
-/config.py
+# Local environment / editor
+venv/
+.venv/
+.idea/
+__pycache__/
+*.pyc
+.env
+
+# Runtime data (no longer used, kept ignored in case of old local copies)
+.spotify_caches/
+.flask_session/
+.cache*

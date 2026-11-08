@@ -1,130 +1,112 @@
-import os
-import uuid
-from pprint import pprint
-
 import spotipy
-import config
+from spotipy.cache_handler import FlaskSessionCacheHandler
 from spotipy.oauth2 import SpotifyOAuth
-from flask_session import Session
 from flask import Flask, session, request, redirect, render_template
 
+import config
 from run_setlist import create_setlist, get_unique_songs, submit_to_spotify
-from setlist_helper import client_credentials_manager
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(64)
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = './.flask_session/'
-Session(app)
+# A fixed key (from the environment) keeps sessions valid across restarts and
+# across multiple workers. Sessions are signed cookies, so nothing is written to disk.
+app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['SESSION_COOKIE_SECURE'] = config.SPOTIPY_REDIRECT_URI.startswith('https://')
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-caches_folder = './.spotify_caches/'
-if not os.path.exists(caches_folder):
-    os.makedirs(caches_folder)
+SCOPE = 'playlist-modify-public user-read-currently-playing'
+NOT_FOUND_MESSAGE = 'Not Enough Playlist Data or Artist does not have any setlist data on setlistFM'
 
 
-def session_cache_path():
-    if not session.get('uuid'):
-        return False
-    else:
-        return caches_folder + session.get('uuid')
+def auth_manager():
+    """Spotify OAuth helper that stores the user's token in their Flask session."""
+    return SpotifyOAuth(
+        client_id=config.SPOTIPY_CLIENT_ID,
+        client_secret=config.SPOTIPY_CLIENT_SECRET,
+        redirect_uri=config.SPOTIPY_REDIRECT_URI,
+        scope=SCOPE,
+        cache_handler=FlaskSessionCacheHandler(session),
+        show_dialog=True,
+    )
+
+
+def find_last_tour(result):
+    for row in result:
+        if row['tour'] != 'N/A':
+            return row['tour']
+    return 'N/A'
+
+
+def build_setlist(artist_name):
+    """Returns (rows, None) on success or (None, error_message) on failure."""
+    try:
+        result = create_setlist(artist_name)
+    except Exception as e:  # artist not found, API error, timeout, etc.
+        app.logger.warning('Setlist lookup failed for %r: %s', artist_name, e)
+        return None, NOT_FOUND_MESSAGE
+    if isinstance(result, str):
+        return None, result
+    return result, None
 
 
 @app.route('/')
 def index():
-    if not session.get('uuid'):
-        # Step 1. Visitor is unknown, give random ID
-        session['uuid'] = str(uuid.uuid4())
+    oauth = auth_manager()
 
-    spotify_auth_manager = SpotifyOAuth(
-        client_id=config.SPOTIPY_CLIENT_ID,
-        client_secret=config.SPOTIPY_CLIENT_SECRET,
-        scope='playlist-modify-public user-read-currently-playing',
-        redirect_uri=config.SPOTIPY_REDIRECT_URI,
-        cache_path=session_cache_path(),
-        show_dialog=True
-    )
-
-    if request.args.get("code"):
-        # Step 3. Being redirected from Spotify auth page
-        spotify_auth_manager.get_access_token(request.args.get("code"))
+    if request.args.get('code'):
+        # Being redirected back from Spotify's sign-in page
+        oauth.get_access_token(request.args.get('code'), as_dict=False)
         return redirect('/')
 
-    if not spotify_auth_manager.get_cached_token():
-        # Step 2. Display sign in link when no token
-        auth_url = spotify_auth_manager.get_authorize_url()
-        return render_template('login.html', auth_url=auth_url)
+    if not oauth.validate_token(oauth.cache_handler.get_cached_token()):
+        # Not signed in yet: show the sign-in link
+        return render_template('login.html', auth_url=oauth.get_authorize_url())
 
-    # Step 4. Signed in, display data
-    spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager,
-                              auth_manager=spotify_auth_manager)
-    return render_template('main.html', name=spotify.me()["display_name"])
+    spotify = spotipy.Spotify(auth_manager=oauth)
+    return render_template('main.html', name=spotify.me()['display_name'])
 
 
 @app.route('/sign_out')
 def sign_out():
-    os.remove(session_cache_path())
     session.clear()
-    if session_cache_path():
-        try:
-            # Remove the CACHE file (.cache-test) so that a new user can authorize.
-            os.remove(session_cache_path())
-        except OSError as e:
-            print("Error: %s - %s." % (e.filename, e.strerror))
     return redirect('/')
 
 
 @app.route('/results', methods=['POST'])
 def results():
-    form_submit = str(request.form['artist_name'])
-    artist_name = form_submit.strip()
-    result = create_setlist(artist_name)
-    if type(result) == str:
-        return render_template('main.html', error=result)
-    else:
-        session['song_data'] = result
-        spot_songs = get_unique_songs(result)
-        # Record last tour
-        last_tour = 'N/A'
-        for i in result:
-            if i['tour'] != 'N/A':
-                last_tour = i['tour']
-                break
-        return render_template('results.html', results=result, last_tour=last_tour, songs=spot_songs)
+    artist_name = request.form.get('artist_name', '').strip()
+    if not artist_name:
+        return render_template('main.html', error='Please enter an artist or band.')
+
+    result, error = build_setlist(artist_name)
+    if error:
+        return render_template('main.html', error=error)
+
+    # Only the artist name goes in the session cookie; /added looks the setlist up again.
+    session['artist_name'] = artist_name
+    return render_template('results.html', results=result, last_tour=find_last_tour(result),
+                           songs=get_unique_songs(result))
 
 
 @app.route('/added')
 def added():
-    spot_songs = ''
-    url = ''
-    # get song list from session
-    if session.get('song_data'):
-        result_data = session.get('song_data')
-        spot_songs = get_unique_songs(result_data)
-        last_tour = 'N/A'
-        for i in result_data:
-            if i['tour'] != 'N/A':
-                last_tour = i['tour']
-                break
+    oauth = auth_manager()
+    if not oauth.validate_token(oauth.cache_handler.get_cached_token()):
+        return redirect('/')
 
-        spotify_auth_manager = SpotifyOAuth(
-            client_id=config.SPOTIPY_CLIENT_ID,
-            client_secret=config.SPOTIPY_CLIENT_SECRET,
-            scope='playlist-modify-public user-read-currently-playing',
-            redirect_uri=config.SPOTIPY_REDIRECT_URI,
-            cache_path=session_cache_path(),
-            show_dialog=True
-        )
+    artist_name = session.pop('artist_name', None)
+    if not artist_name:
+        return render_template('songsAdded.html', songs='', url='', message='Error')
 
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager,
-                                  auth_manager=spotify_auth_manager)
+    result, error = build_setlist(artist_name)
+    if error:
+        return render_template('songsAdded.html', songs='', url='', message='Error')
 
-        url = submit_to_spotify(result_data[0]['artist'], last_tour, spot_songs, spotify)
-        session.pop('song_data')
-        message = 'Success'
-    else:
-        message = 'Error'
-    return render_template('songsAdded.html', songs=spot_songs, url=url, message=message)
+    spot_songs = get_unique_songs(result)
+    spotify = spotipy.Spotify(auth_manager=oauth)
+    url = submit_to_spotify(result[0]['artist'], find_last_tour(result), spot_songs, spotify)
+    return render_template('songsAdded.html', songs=spot_songs, url=url, message='Success')
 
 
 if __name__ == '__main__':
-    app.run(threaded=True, port=int(os.environ.get("PORT", 8080)))
+    import os
+    app.run(threaded=True, port=int(os.environ.get('PORT', 8080)))

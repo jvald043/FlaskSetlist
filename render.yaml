@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: flasksetlist
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SETLIST_FM_ID
+        sync: false
+      - key: SPOTIPY_CLIENT_ID
+        sync: false
+      - key: SPOTIPY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIPY_REDIRECT_URI
+        sync: false
