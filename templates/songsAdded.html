@@ -17,16 +17,19 @@
           <div class="card-body">
             {% if message =="Error" %}
             <div class="alert alert-danger">
-                <h5 class="card-title text-center">Something went wrong! Please try again!</h5>
+                <h5 class="card-title text-center">Something went wrong!</h5>
+                {% if error %}<p class="mb-0 text-center">{{ error }}</p>{% endif %}
             </div>
             {% else %}
             <div class="alert alert-success">
                 <h5 class="card-title text-center">Songs were added successfully!</h5>
             </div>
             {% endif %}
+              {% if url %}
               <a href="{{url}}" target="_blank" class="btn btn-lg btn-success btn-block text-uppercase btn-style" role="button"><i class="fab fa-spotify"></i> Open Playlist</a>
               <hr class="my-4">
-              <a href="/" class="btn btn-lg btn-info btn-block text-uppercase btn-style" role="button"> Create a new playlist</a>
+              {% endif %}
+              <a href="{{ url_for('search') }}" class="btn btn-lg btn-info btn-block text-uppercase btn-style" role="button"> Search another artist</a>
               <a href="/sign_out" class="btn btn-lg btn-danger btn-block text-uppercase btn-style" role="button"> Sign Out</a>
           </div>
         </div>

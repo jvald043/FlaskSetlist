@@ -16,16 +16,10 @@
         <div class="card card-signin my-5">
           <div class="card-body">
             <h3 class="card-title text-center">Setlist Generator</h3>
-              {% if error %}
-                <div class="alert alert-warning"><p>{{ error }}</p></div>
-              {% endif %}
-              <p>Setlist Creator needs authorization from the user in order to have access to create a playlist</p>
-              <p>This App generates a playlist based on the last songs an artist/band played at their recent venues according to setlist fm</p>
-            <form id="setlistLogin" class="form-signin">
+              <p>Going to a concert? Enter an artist or band and this app gathers the songs they've played at their most recent shows, using setlist.fm.</p>
+              <p>You can review the setlist first, then save it as a Spotify playlist if you like.</p>
               <hr class="my-4">
-                <a href="{{auth_url}}" class="btn btn-success btn-lg btn-block text-uppercase btn-style" role="button">
-                    <i class="fab fa-spotify"></i> Authorize Spotify</a>
-            </form>
+              <a href="{{ url_for('search') }}" class="btn btn-success btn-lg btn-block text-uppercase btn-style" role="button">Continue</a>
           </div>
         </div>
       </div>

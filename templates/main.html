@@ -20,16 +20,18 @@
                     <h3 class="card-title text-center">Please try another Artist!</h3>
                 </div>
               {% else %}
-                <h3 class="card-title text-center">Welcome {{name}}</h3>
+                <h3 class="card-title text-center">Find an artist's setlist</h3>
               {% endif %}
             <form class="form-signin needs-validation" action="{{ url_for('results') }}" method="POST">
               <div class="form-label-group">
                   <input name='artist_name' type="text" class="form-control" placeholder="Please enter an Artist or Band" id="artist_name">
                   <label for="artist_name">Please enter an Artist or Band</label>
               </div>
-              <button class="btn btn-lg btn-success btn-block text-uppercase btn-style" type="submit"><i class="fab fa-spotify"></i>Submit</button>
+              <button class="btn btn-lg btn-success btn-block text-uppercase btn-style" type="submit">Get Setlist</button>
+              {% if signed_in %}
               <hr class="my-4">
-                <a href="/sign_out" class="btn btn-lg btn-block text-uppercase btn-danger btn-style" role="button">Sign Out</a>
+                <a href="/sign_out" class="btn btn-lg btn-block text-uppercase btn-danger btn-style" role="button">Sign Out of Spotify</a>
+              {% endif %}
             </form>
           </div>
         </div>

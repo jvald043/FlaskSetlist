@@ -33,7 +33,7 @@
 
                         <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
                             <p>In the following tabs above are the unique songs that will be added to the playlist , followed by the results from the last shows played</p>
-                            <p>Click create a playlist below to create a playlist the unique setlist songs</p>
+                            <p>Click the button below to save these songs as a Spotify playlist.</p>
                             <p>The last tour for {{results[0]['artist']}}: {{last_tour}}</p>
                             <p>Total number of songs collected: {{songs|length}}</p>
                         </div>
@@ -83,9 +83,11 @@
                     </div>
                 </div>
                   <div class="card-footer">
-                      <a href="{{url}}" target="_blank" class="btn btn-lg btn-success btn-block text-uppercase btn-style" role="button">
-                          <i class="fab fa-spotify"></i> Create Playlist
+                      <a href="{{ url_for('save_spotify') }}" class="btn btn-lg btn-success btn-block text-uppercase btn-style" role="button">
+                          <i class="fab fa-spotify"></i> Save as Spotify Playlist
                       </a>
+                      <p class="text-center text-muted small mt-2 mb-0">You'll be asked to sign in to Spotify.</p>
+                      <a href="{{ url_for('search') }}" class="btn btn-lg btn-light btn-block text-uppercase btn-style mt-3" role="button">Search another artist</a>
                   </div>
             </div>
         </div>

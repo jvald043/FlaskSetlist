@@ -1,8 +1,8 @@
 import spotipy
-from spotipy.exceptions import SpotifyException
+from spotipy.exceptions import SpotifyException, SpotifyOauthError
 from spotipy.cache_handler import FlaskSessionCacheHandler
 from spotipy.oauth2 import SpotifyOAuth
-from flask import Flask, session, request, redirect, render_template
+from flask import Flask, session, request, redirect, render_template, url_for
 
 import config
 from run_setlist import create_setlist, get_unique_songs, submit_to_spotify
@@ -15,9 +15,9 @@ app.config['SESSION_COOKIE_SECURE'] = config.SPOTIPY_REDIRECT_URI.startswith('ht
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 SCOPE = 'playlist-modify-public user-read-currently-playing'
-SPOTIFY_ERROR_MESSAGE = ('Spotify declined the request. The app may be temporarily unavailable; '
-                         'please try again later.')
 NOT_FOUND_MESSAGE = 'Not Enough Playlist Data or Artist does not have any setlist data on setlistFM'
+SPOTIFY_ERROR_MESSAGE = ("Spotify didn't allow the playlist to be created. "
+                         "The Spotify connection for this app may be temporarily unavailable.")
 
 
 def auth_manager():
@@ -30,6 +30,10 @@ def auth_manager():
         cache_handler=FlaskSessionCacheHandler(session),
         show_dialog=True,
     )
+
+
+def signed_in(oauth):
+    return bool(oauth.validate_token(oauth.cache_handler.get_cached_token()))
 
 
 def find_last_tour(result):
@@ -53,26 +57,32 @@ def build_setlist(artist_name):
 
 @app.route('/')
 def index():
-    oauth = auth_manager()
-
+    # Spotify sends users back here after they approve (or cancel) access.
+    # This must stay at "/" because it is the registered redirect URI.
     if request.args.get('code'):
-        # Being redirected back from Spotify's sign-in page
-        oauth.get_access_token(request.args.get('code'), as_dict=False)
-        return redirect('/')
+        try:
+            auth_manager().get_access_token(request.args.get('code'), as_dict=False)
+        except SpotifyOauthError as e:
+            app.logger.warning('Spotify token exchange failed: %s', e)
+            return render_template('songsAdded.html', message='Error', error=SPOTIFY_ERROR_MESSAGE)
+        # Finish what the user started: save the playlist they asked for.
+        if session.get('artist_name'):
+            return redirect(url_for('added'))
+        return redirect(url_for('search'))
 
-    if not oauth.validate_token(oauth.cache_handler.get_cached_token()):
-        # Not signed in yet: show the sign-in link
-        return render_template('login.html', auth_url=oauth.get_authorize_url())
+    if request.args.get('error'):
+        # User clicked "Cancel" on Spotify's page.
+        if session.get('artist_name'):
+            return render_template('songsAdded.html', message='Error',
+                                   error='Spotify access was not granted, so no playlist was created.')
+        return redirect(url_for('search'))
 
-    spotify = spotipy.Spotify(auth_manager=oauth)
-    try:
-        name = spotify.me()['display_name']
-    except SpotifyException as e:
-        app.logger.warning('Spotify /me failed: %s', e)
-        session.clear()
-        return render_template('login.html', auth_url=oauth.get_authorize_url(),
-                               error=SPOTIFY_ERROR_MESSAGE)
-    return render_template('main.html', name=name)
+    return render_template('login.html')
+
+
+@app.route('/search')
+def search():
+    return render_template('main.html', signed_in=signed_in(auth_manager()))
 
 
 @app.route('/sign_out')
@@ -85,11 +95,12 @@ def sign_out():
 def results():
     artist_name = request.form.get('artist_name', '').strip()
     if not artist_name:
-        return render_template('main.html', error='Please enter an artist or band.')
+        return render_template('main.html', error='Please enter an artist or band.',
+                               signed_in=signed_in(auth_manager()))
 
     result, error = build_setlist(artist_name)
     if error:
-        return render_template('main.html', error=error)
+        return render_template('main.html', error=error, signed_in=signed_in(auth_manager()))
 
     # Only the artist name goes in the session cookie; /added looks the setlist up again.
     session['artist_name'] = artist_name
@@ -97,19 +108,30 @@ def results():
                            songs=get_unique_songs(result))
 
 
+@app.route('/save/spotify')
+def save_spotify():
+    """Ask for Spotify access only now, when the user wants to save the playlist."""
+    if not session.get('artist_name'):
+        return redirect(url_for('search'))
+    oauth = auth_manager()
+    if signed_in(oauth):
+        return redirect(url_for('added'))
+    return redirect(oauth.get_authorize_url())
+
+
 @app.route('/added')
 def added():
     oauth = auth_manager()
-    if not oauth.validate_token(oauth.cache_handler.get_cached_token()):
-        return redirect('/')
+    if not signed_in(oauth):
+        return redirect(url_for('save_spotify'))
 
     artist_name = session.pop('artist_name', None)
     if not artist_name:
-        return render_template('songsAdded.html', songs='', url='', message='Error')
+        return redirect(url_for('search'))
 
     result, error = build_setlist(artist_name)
     if error:
-        return render_template('songsAdded.html', songs='', url='', message='Error')
+        return render_template('songsAdded.html', message='Error', error=error)
 
     spot_songs = get_unique_songs(result)
     spotify = spotipy.Spotify(auth_manager=oauth)
@@ -117,7 +139,7 @@ def added():
         url = submit_to_spotify(result[0]['artist'], find_last_tour(result), spot_songs, spotify)
     except SpotifyException as e:
         app.logger.warning('Creating playlist failed: %s', e)
-        return render_template('songsAdded.html', songs='', url='', message='Error')
+        return render_template('songsAdded.html', message='Error', error=SPOTIFY_ERROR_MESSAGE)
     return render_template('songsAdded.html', songs=spot_songs, url=url, message='Success')
 
 
